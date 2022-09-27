@@ -1,0 +1,268 @@
+{
+  "nomadcms-nomadcmsordersTabledevBD3041A8-COE4WZVF99ES": [
+    {
+      "PutRequest": {
+        "Item": {
+          "orderID": {
+            "S": "106be7ca-7afa-40f6-b871-9d592408a569"
+          },
+          "restaurantID": {
+            "S": "d471fe1e-521a-48cf-bb80-2a8ab79c2457"
+          },
+          "menuID": {
+            "S": "ee367e37-34d1-4126-881f-43c77d792284"
+          },
+          "orderItems": {
+            "L": [
+              {
+                "M": {
+                  "quantity": {
+                    "N": "2"
+                  },
+                  "productID": {
+                    "S": "c65796e8-0806-4bca-950a-ebc3db101707"
+                  },
+                  "name": {
+                    "S": "Burguer 1"
+                  },
+                  "image": {
+                    "S": "./images/item1.jpg"
+                  },
+                  "value": {
+                    "S": "8.69"
+                  }
+                }
+              },
+              {
+                "M": {
+                  "quantity": {
+                    "N": "1"
+                  },
+                  "productID": {
+                    "S": "13b3e55b-e3c0-46b8-93b1-8022abca2f75"
+                  },
+                  "name": {
+                    "S": "Burguer 2"
+                  },
+                  "image": {
+                    "S": "./images/item2.jpg"
+                  },
+                  "value": {
+                    "S": "6.5"
+                  }
+                }
+              },
+              {
+                "M": {
+                  "quantity": {
+                    "N": "2"
+                  },
+                  "productID": {
+                    "S": "42020fcd-46ed-47bc-9a23-9dd00b126560"
+                  },
+                  "name": {
+                    "S": "Soda"
+                  },
+                  "image": {
+                    "S": "./images/item4.jpg"
+                  },
+                  "value": {
+                    "S": "2.75"
+                  }
+                }
+              }
+            ]
+          },
+          "status": {
+            "S": "waiting"
+          },
+          "orderNumber": {
+            "N": "35"
+          },
+          "total": {
+            "S": "29.38"
+          },
+          "orderTime": {
+            "S": "2022-09-22T15:00:00"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "orderID": {
+            "S": "253772e2-682a-4c80-8d88-ecedd511726a"
+          },
+          "restaurantID": {
+            "S": "d471fe1e-521a-48cf-bb80-2a8ab79c2457"
+          },
+          "menuID": {
+            "S": "ee367e37-34d1-4126-881f-43c77d792284"
+          },
+          "orderItems": {
+            "L": [
+              {
+                "M": {
+                  "quantity": {
+                    "N": "1"
+                  },
+                  "productID": {
+                    "S": "c65796e8-0806-4bca-950a-ebc3db101707"
+                  },
+                  "name": {
+                    "S": "Burguer 1"
+                  },
+                  "image": {
+                    "S": "./images/item1.jpg"
+                  },
+                  "value": {
+                    "S": "8.69"
+                  }
+                }
+              },
+              {
+                "M": {
+                  "quantity": {
+                    "N": "2"
+                  },
+                  "productID": {
+                    "S": "13b3e55b-e3c0-46b8-93b1-8022abca2f75"
+                  },
+                  "name": {
+                    "S": "Burguer 2"
+                  },
+                  "image": {
+                    "S": "./images/item2.jpg"
+                  },
+                  "value": {
+                    "S": "6.5"
+                  }
+                }
+              },
+              {
+                "M": {
+                  "quantity": {
+                    "N": "1"
+                  },
+                  "productID": {
+                    "S": "42020fcd-46ed-47bc-9a23-9dd00b126560"
+                  },
+                  "name": {
+                    "S": "Soda"
+                  },
+                  "image": {
+                    "S": "./images/item4.jpg"
+                  },
+                  "value": {
+                    "S": "2.75"
+                  }
+                }
+              }
+            ]
+          },
+          "status": {
+            "S": "waiting"
+          },
+          "orderNumber": {
+            "N": "36"
+          },
+          "total": {
+            "S": "24.44"
+          },
+          "orderTime": {
+            "S": "2022-09-22T15:01:00"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "orderID": {
+            "S": "82da9dec-e594-4755-afc7-1360c0b8f7d2"
+          },
+          "restaurantID": {
+            "S": "d471fe1e-521a-48cf-bb80-2a8ab79c2457"
+          },
+          "menuID": {
+            "S": "ee367e37-34d1-4126-881f-43c77d792284"
+          },
+          "orderItems": {
+            "L": [
+              {
+                "M": {
+                  "quantity": {
+                    "N": "2"
+                  },
+                  "productID": {
+                    "S": "c65796e8-0806-4bca-950a-ebc3db101707"
+                  },
+                  "name": {
+                    "S": "Burguer 1"
+                  },
+                  "image": {
+                    "S": "./images/item1.jpg"
+                  },
+                  "value": {
+                    "S": "8.69"
+                  }
+                }
+              },
+              {
+                "M": {
+                  "quantity": {
+                    "N": "3"
+                  },
+                  "productID": {
+                    "S": "13b3e55b-e3c0-46b8-93b1-8022abca2f75"
+                  },
+                  "name": {
+                    "S": "Burguer 2"
+                  },
+                  "image": {
+                    "S": "./images/item2.jpg"
+                  },
+                  "value": {
+                    "S": "6.5"
+                  }
+                }
+              },
+              {
+                "M": {
+                  "quantity": {
+                    "N": "2"
+                  },
+                  "productID": {
+                    "S": "42020fcd-46ed-47bc-9a23-9dd00b126560"
+                  },
+                  "name": {
+                    "S": "Soda"
+                  },
+                  "image": {
+                    "S": "./images/item4.jpg"
+                  },
+                  "value": {
+                    "S": "2.75"
+                  }
+                }
+              }
+            ]
+          },
+          "status": {
+            "S": "waiting"
+          },
+          "orderNumber": {
+            "N": "37"
+          },
+          "total": {
+            "S": "42.38"
+          },
+          "orderTime": {
+            "S": "2022-09-22T15:02:00"
+          }
+        }
+      }
+    }
+  ]
+}

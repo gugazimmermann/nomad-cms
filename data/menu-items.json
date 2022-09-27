@@ -1,0 +1,112 @@
+{
+  "nomadcms-nomadcmsrestaurantMenuTabledev3A8EE919-12UZRXKGIDHVE": [
+    {
+      "PutRequest": {
+        "Item": {
+          "id": {
+            "S": "4715d9a2-bab3-46cf-af58-865c5a7b092a"
+          },
+          "restaurantID": {
+            "S": "d471fe1e-521a-48cf-bb80-2a8ab79c2457"
+          },
+          "menuID": {
+            "S": "ee367e37-34d1-4126-881f-43c77d792284"
+          },
+          "productID": {
+            "S": "c65796e8-0806-4bca-950a-ebc3db101707"
+          },
+          "name": {
+            "S": "Burguer 1"
+          },
+          "image": {
+            "S": "./images/item1.jpg"
+          },
+          "value": {
+            "S": "8.69"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "id": {
+            "S": "85c88cd5-bc91-4c56-b082-a105e40193df"
+          },
+          "restaurantID": {
+            "S": "d471fe1e-521a-48cf-bb80-2a8ab79c2457"
+          },
+          "menuID": {
+            "S": "ee367e37-34d1-4126-881f-43c77d792284"
+          },
+          "productID": {
+            "S": "13b3e55b-e3c0-46b8-93b1-8022abca2f75"
+          },
+          "name": {
+            "S": "Burguer 2"
+          },
+          "image": {
+            "S": "./images/item2.jpg"
+          },
+          "value": {
+            "S": "6.5"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "id": {
+            "S": "a75e5108-e2fc-4807-96b4-be0299f11d9c"
+          },
+          "restaurantID": {
+            "S": "d471fe1e-521a-48cf-bb80-2a8ab79c2457"
+          },
+          "menuID": {
+            "S": "ee367e37-34d1-4126-881f-43c77d792284"
+          },
+          "productID": {
+            "S": "820f5a45-ca93-4eb9-a327-a7ea63fbb12d"
+          },
+          "name": {
+            "S": "Combo"
+          },
+          "image": {
+            "S": "./images/item3.jpg"
+          },
+          "value": {
+            "S": "19.99"
+          }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "id": {
+            "S": "1c535971-bacd-4233-aa51-49a6a429ef74"
+          },
+          "restaurantID": {
+            "S": "d471fe1e-521a-48cf-bb80-2a8ab79c2457"
+          },
+          "menuID": {
+            "S": "ee367e37-34d1-4126-881f-43c77d792284"
+          },
+          "productID": {
+            "S": "42020fcd-46ed-47bc-9a23-9dd00b126560"
+          },
+          "name": {
+            "S": "Soda"
+          },
+          "image": {
+            "S": "./images/item4.jpg"
+          },
+          "value": {
+            "S": "2.75"
+          }
+        }
+      }
+    }
+  ]
+}
