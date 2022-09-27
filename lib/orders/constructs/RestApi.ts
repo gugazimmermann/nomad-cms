@@ -8,25 +8,27 @@ type RestApiConstructProps = {
 }
 
 export class RestApiConstruct extends Construct {
+  public readonly ordersApi: RestApi;
   public readonly ordersRestaurantIDResource: Resource;
   public readonly orderOrderIDResource: Resource;
 
   constructor(scope: Construct, id: string, props: RestApiConstructProps) {
     super(scope, id);
 
-    const ordersApi = new RestApi(scope, `${props.stackName}-ordersApi-${props.stage}`, {
+    this.ordersApi = new RestApi(scope, `${props.stackName}-ordersApi-${props.stage}`, {
       deployOptions: {
         stageName: props.stage,
+        tracingEnabled: true,
       },
       defaultCorsPreflightOptions: {
         allowOrigins: Cors.ALL_ORIGINS
       }
     });
-    this.ordersRestaurantIDResource = ordersApi.root.addResource(`{restaurantID}`);
+    this.ordersRestaurantIDResource = this.ordersApi.root.addResource(`{restaurantID}`);
     this.orderOrderIDResource = this.ordersRestaurantIDResource.addResource(`{orderID}`);
-    
+
     new CfnOutput(scope, 'OrdersApiOutput', {
-      value: ordersApi.restApiName,
+      value: this.ordersApi.restApiName,
     });
   }
 }

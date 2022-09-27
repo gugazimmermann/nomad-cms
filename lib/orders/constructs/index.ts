@@ -1,12 +1,12 @@
-import { RemovalPolicy, CfnOutput } from "aws-cdk-lib";
-import { RestApi, Cors, LambdaIntegration } from "aws-cdk-lib/aws-apigateway";
-import { Table, AttributeType, BillingMode, ProjectionType } from "aws-cdk-lib/aws-dynamodb";
+import { LambdaIntegration } from "aws-cdk-lib/aws-apigateway";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { NodejsFunctionProps, NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import { join } from "path";
 import { DynamoDBConstruct } from './dynamoDB';
 import { RestApiConstruct } from "./RestApi";
+import { SQSConstruct } from "./SQS";
 
 type OrdersConstructProps = {
   stackName: string | undefined;
@@ -17,13 +17,13 @@ export class OrdersConstruct extends Construct {
   constructor(scope: Construct, id: string, props: OrdersConstructProps) {
     super(scope, id);
 
-    // orders table
-    const { ordersTable } = new DynamoDBConstruct(this, 'ordersTableConstruct', { stackName: props.stackName, stage: props.stage });
-    
-    // orders api
-    const { ordersRestaurantIDResource, orderOrderIDResource } = new RestApiConstruct(this, 'ordersApiConstruct', { stackName: props.stackName, stage: props.stage });
+    // orders DynamoDB
+    const { ordersTable } = new DynamoDBConstruct(this, 'ordersDynamoDBConstruct', { stackName: props.stackName, stage: props.stage });
 
-    // common lambda props
+    // orders RestApi
+    const { ordersApi, ordersRestaurantIDResource, orderOrderIDResource } = new RestApiConstruct(this, 'ordersRestApiConstruct', { stackName: props.stackName, stage: props.stage });
+
+    // common Lambda props
     const ordersLambdaProps: NodejsFunctionProps = {
       bundling: {
         minify: true,
@@ -62,8 +62,13 @@ export class OrdersConstruct extends Construct {
       ...ordersLambdaProps,
     });
     ordersTable.grantReadWriteData(ordersCreate);
-    const ordersCreateIntegration = new LambdaIntegration(ordersCreate);
-    ordersRestaurantIDResource.addMethod('POST', ordersCreateIntegration);
+
+    /**
+     * orders CREATE SQS
+     */
+    const { ordersPostQueue } = new SQSConstruct(this, 'ordersSQSConstruct', { ordersApi, stackName: props.stackName, stage: props.stage });
+    ordersCreate.addEventSource(new SqsEventSource(ordersPostQueue));
+
 
     // orders UPDATE
     const ordersUpdate = new NodejsFunction(scope, `${props.stackName}-ordersUpdate-${props.stage}`, {
@@ -74,13 +79,13 @@ export class OrdersConstruct extends Construct {
     const ordersUpdateIntegration = new LambdaIntegration(ordersUpdate);
     ordersRestaurantIDResource.addMethod('PUT', ordersUpdateIntegration);
 
-    // orders UPDATE STATUS
-    const ordersUpdateStatus = new NodejsFunction(scope, `${props.stackName}-ordersUpdateStatus-${props.stage}`, {
-      entry: join(__dirname, '..', 'lambdas', 'orders-update-status.ts'),
+    // orders PATCH STATUS
+    const ordersPatchStatus = new NodejsFunction(scope, `${props.stackName}-ordersPatchStatus-${props.stage}`, {
+      entry: join(__dirname, '..', 'lambdas', 'orders-patch-status.ts'),
       ...ordersLambdaProps,
     });
-    ordersTable.grantReadWriteData(ordersUpdateStatus);
-    const ordersUpdateStatusIntegration = new LambdaIntegration(ordersUpdateStatus);
+    ordersTable.grantReadWriteData(ordersPatchStatus);
+    const ordersUpdateStatusIntegration = new LambdaIntegration(ordersPatchStatus);
     ordersRestaurantIDResource.addMethod('PATCH', ordersUpdateStatusIntegration);
 
     // orders DELETE

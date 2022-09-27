@@ -1,5 +1,5 @@
 import * as AWS from "aws-sdk";
-import { APIGatewayProxyResult, APIGatewayEvent } from "aws-lambda";
+import { APIGatewayProxyResult, SQSEvent } from 'aws-lambda';
 import { v4 as uuidv4 } from 'uuid';
 import { ORDER_STATUS } from "./enums";
 import { ItemType } from "./types";
@@ -10,18 +10,14 @@ const TABLE_NAME = process.env.TABLE_NAME || "";
 const db = new AWS.DynamoDB.DocumentClient();
 
 export const handler = async (
-  event: APIGatewayEvent
+  event: SQSEvent
 ): Promise<APIGatewayProxyResult> => {
   console.debug(`event`, JSON.stringify(event, undefined, 2));
 
-  const restaurantID = event.pathParameters?.restaurantID;
-  if (!restaurantID) return createResponse(400, "You are missing the restaurantID");
-
-  const { body } = event;
-  if (!body) return createResponse(400, "You are missing the Order Item");
-
-  let item: ItemType = JSON.parse(body);
-  if (!item.restaurantID || item.restaurantID !== restaurantID) return createResponse(400, "Incorrect restaurantID");
+  const { Records } = event;
+  if (!Records || !Records.length) return createResponse(400, "No records found");
+  let item: ItemType = JSON.parse(Records[0].body);
+  if (!item.restaurantID) return createResponse(400, "You are missing the restaurantID");
   if (!item.menuID) return createResponse(400, "You are missing the menuID");
   if (!item.orderItems || !item.orderItems.length) return createResponse(400, "You are missing the order items");
   if (!item.total) return createResponse(400, "You are missing the order total");
@@ -33,7 +29,7 @@ export const handler = async (
     TableName: TABLE_NAME,
     IndexName: 'byOrderNumber',
     KeyConditionExpression: 'restaurantID = :restaurantID',
-    ExpressionAttributeValues: { ":restaurantID": restaurantID },
+    ExpressionAttributeValues: { ":restaurantID": item.restaurantID },
     ProjectionExpression: "#orderNumber",
     ExpressionAttributeNames: { "#orderNumber": "orderNumber" },
     ScanIndexForward: false,
