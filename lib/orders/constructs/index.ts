@@ -5,6 +5,8 @@ import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunctionProps, NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import { join } from "path";
+import { DynamoDBConstruct } from './dynamoDB';
+import { RestApiConstruct } from "./RestApi";
 
 type OrdersConstructProps = {
   stackName: string | undefined;
@@ -16,30 +18,10 @@ export class OrdersConstruct extends Construct {
     super(scope, id);
 
     // orders table
-    const ordersTable = new Table(scope, `${props.stackName}-ordersTable-${props.stage}`, {
-      partitionKey: { name: 'restaurantID', type: AttributeType.STRING },
-      sortKey: { name: 'orderID', type: AttributeType.STRING },
-      billingMode: BillingMode.PAY_PER_REQUEST,
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-    ordersTable.addGlobalSecondaryIndex({
-      indexName: 'byOrderNumber',
-      partitionKey: { name: 'restaurantID', type: AttributeType.STRING },
-      sortKey: { name: 'orderNumber', type: AttributeType.NUMBER },
-      projectionType: ProjectionType.ALL,
-    });
+    const { ordersTable } = new DynamoDBConstruct(this, 'ordersTableConstruct', { stackName: props.stackName, stage: props.stage });
     
     // orders api
-    const ordersApi = new RestApi(scope, `${props.stackName}-ordersApi-${props.stage}`, {
-      deployOptions: {
-        stageName: props.stage,
-      },
-      defaultCorsPreflightOptions: {
-        allowOrigins: Cors.ALL_ORIGINS
-      }
-    });
-    const ordersRestaurantIDResource = ordersApi.root.addResource(`{restaurantID}`);
-    const orderOrderIDResource = ordersRestaurantIDResource.addResource(`{orderID}`);
+    const { ordersRestaurantIDResource, orderOrderIDResource } = new RestApiConstruct(this, 'ordersApiConstruct', { stackName: props.stackName, stage: props.stage });
 
     // common lambda props
     const ordersLambdaProps: NodejsFunctionProps = {
@@ -109,12 +91,5 @@ export class OrdersConstruct extends Construct {
     ordersTable.grantWriteData(ordersDelete);
     const ordersDeleteIntegration = new LambdaIntegration(ordersDelete);
     orderOrderIDResource.addMethod('DELETE', ordersDeleteIntegration);
-
-    new CfnOutput(scope, 'OrdersTableOutput', {
-      value: ordersTable.tableName,
-    });
-    new CfnOutput(scope, 'OrdersApiOutput', {
-      value: ordersApi.restApiName,
-    });
   }
 }
