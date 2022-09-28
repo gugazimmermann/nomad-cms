@@ -21,10 +21,10 @@ const writeLog = async (order: ItemType): Promise<void> => {
   }
 }
 
-export const handler = async (event: { body: ItemType}) => {
+export const handler = async (event: ItemType) => {
   console.debug(`event`, JSON.stringify(event, undefined, 2));
 
-  const order = event.body;
+  const order = event;
 
   if (order.status === ORDER_STATUS.PAYMENT_SUCCESS) order.status = ORDER_STATUS.WAITING;
 

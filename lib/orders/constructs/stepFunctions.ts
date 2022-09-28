@@ -28,6 +28,7 @@ export class StepFunctionsConstruct extends Construct {
     
     const ordersProcess = new LambdaInvoke(this, 'Process Order', {
       lambdaFunction: props.ordersProcess,
+      inputPath: '$.body'
     });
     
     const definition = ordersPayment
@@ -35,7 +36,7 @@ export class StepFunctionsConstruct extends Construct {
       .next(new Choice(this, 'Payment Succeeded?')
         .when(Condition.stringEquals('$.body.status', 'payment_declined'), ordersProcess)
         .when(Condition.stringEquals('$.body.status', 'payment_success'), ordersProcess)
-        .otherwise(wait3Secs));
+        .otherwise(ordersPayment));
     
     this.ordersPaymentStep = new StateMachine(this, `${props.stackName}-ordersPaymentStep-${props.stage}`, {
       definition,
