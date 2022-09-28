@@ -5,6 +5,8 @@ import { RestApiConstruct } from "./restApi";
 import { SQSConstruct } from "./sqs";
 import { StepFunctionsConstruct } from "./stepFunctions";
 import { LambdasConstruct } from "./lambdas";
+import { CfnOutput } from "aws-cdk-lib";
+import { s3Construct } from './s3';
 
 type OrdersConstructProps = {
   stackName: string | undefined;
@@ -32,12 +34,19 @@ export class OrdersConstruct extends Construct {
         stage: props.stage,
       });
 
+    // orders logs bucket
+    const { ordersLogsBucket } = new s3Construct(this, "ordersLogsBucket", {
+      stackName: props.stackName,
+      stage: props.stage,
+    })
+
     // orders Lambdas
     const { ordersIncomming, ordersPaymentState, ordersProcess } =
       new LambdasConstruct(this, "ordersLambdasConstruct", {
         ordersTable,
         ordersRestaurantIDResource,
         orderOrderIDResource,
+        ordersLogsBucket,
         stackName: props.stackName,
         stage: props.stage,
       });
@@ -56,13 +65,13 @@ export class OrdersConstruct extends Construct {
 
     /**
      * To simulate the bank call to payment, we will use Step Functions
-     * 
+     *
      * Simulate the bank respose in a simple way
      * 60% Sucess
      * 20% Failure (will retry)
      * 20% Declined (will not be accpeted)
-    */
-    const { paymentStep } = new StepFunctionsConstruct(
+     */
+    const { ordersPaymentStep } = new StepFunctionsConstruct(
       this,
       "ordersPaymentProcessStepFunctionsConstruct",
       {
@@ -72,7 +81,14 @@ export class OrdersConstruct extends Construct {
         stage: props.stage,
       }
     );
-    paymentStep.grantStartExecution(ordersIncomming);
-    ordersIncomming.addEnvironment("paymentStepArn", paymentStep.stateMachineArn);
+    ordersPaymentStep.grantStartExecution(ordersIncomming);
+    ordersIncomming.addEnvironment("ordersPaymentStepArn", ordersPaymentStep.stateMachineArn);
+
+    new CfnOutput(scope, "OrdersTableOutput", {
+      value: ordersTable.tableName,
+    });
+    new CfnOutput(scope, "ordersLogsBucketOutput", {
+      value: ordersLogsBucket.bucketName,
+    });
   }
 }

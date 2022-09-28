@@ -12,7 +12,7 @@ type StepFunctionsConstructProps = {
 }
 
 export class StepFunctionsConstruct extends Construct {
-  public readonly paymentStep: StateMachine;
+  public readonly ordersPaymentStep: StateMachine;
 
   constructor(scope: Construct, id: string, props: StepFunctionsConstructProps) {
     super(scope, id);
@@ -21,7 +21,7 @@ export class StepFunctionsConstruct extends Construct {
       time: WaitTime.duration(Duration.seconds(3))
     });
 
-    const processPayment = new LambdaInvoke(this, 'Process Payment', {
+    const ordersPayment = new LambdaInvoke(this, 'Process Payment', {
       lambdaFunction: props.ordersPaymentState,
       outputPath: '$.Payload'
     });
@@ -30,14 +30,14 @@ export class StepFunctionsConstruct extends Construct {
       lambdaFunction: props.ordersProcess,
     });
     
-    const definition = processPayment
+    const definition = ordersPayment
       .next(wait3Secs)
       .next(new Choice(this, 'Payment Succeeded?')
         .when(Condition.stringEquals('$.body.status', 'payment_declined'), ordersProcess)
         .when(Condition.stringEquals('$.body.status', 'payment_success'), ordersProcess)
         .otherwise(wait3Secs));
     
-    this.paymentStep = new StateMachine(this, `${props.stackName}-stateMachine-${props.stage}`, {
+    this.ordersPaymentStep = new StateMachine(this, `${props.stackName}-ordersPaymentStep-${props.stage}`, {
       definition,
       timeout: Duration.seconds(30),
     });

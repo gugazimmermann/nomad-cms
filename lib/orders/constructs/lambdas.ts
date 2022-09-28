@@ -4,11 +4,13 @@ import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunctionProps, NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import { join } from "path";
+import { Bucket } from 'aws-cdk-lib/aws-s3';
 
 type LambdasConstructProps = {
   ordersTable: Table;
-  ordersRestaurantIDResource: Resource,
-  orderOrderIDResource: Resource
+  ordersRestaurantIDResource: Resource;
+  orderOrderIDResource: Resource;
+  ordersLogsBucket: Bucket;
   stackName: string | undefined;
   stage: string;
 }
@@ -106,7 +108,10 @@ export class LambdasConstruct extends Construct {
     const ordersDeleteIntegration = new LambdaIntegration(ordersDelete);
     props.orderOrderIDResource.addMethod("DELETE", ordersDeleteIntegration);
 
-    // orders incomming
+    /**
+     * All incomming order will be from a SQS Queue
+     * and then pass to Step Function to handle the Payment
+     */
     this.ordersIncomming = new NodejsFunction(
       scope,
       `${props.stackName}-ordersIncomming-${props.stage}`,
@@ -117,7 +122,13 @@ export class LambdasConstruct extends Construct {
     );
     props.ordersTable.grantReadData(this.ordersIncomming);
 
-    // orders payment process
+    /**
+     * orders payment process - handled by the Step Function
+     * Just to simulate the bank response
+     * 60% Sucess
+     * 20% Failure (will retry)
+     * 20% Declined (will not be accpeted)
+     */
     this.ordersPaymentState = new NodejsFunction(
       scope,
       `${props.stackName}-ordersPayment-${props.stage}`,
@@ -127,7 +138,13 @@ export class LambdasConstruct extends Construct {
       }
     );
 
-    // orders process
+    /**
+     * After the payment response will send to the database
+     * as waiting if the payment is ok, or as payment_declined
+     * 
+     * it's will also save the order in a S3 bucket to be used
+     * as log in the future, with glue, athena and quicksight.
+     */
     this.ordersProcess = new NodejsFunction(
       scope,
       `${props.stackName}-ordersProcess-${props.stage}`,
@@ -137,6 +154,7 @@ export class LambdasConstruct extends Construct {
       }
     );
     props.ordersTable.grantWriteData(this.ordersProcess);
-
+    props.ordersLogsBucket.grantWrite(this.ordersProcess);
+    this.ordersProcess.addEnvironment('ordersLogsBucketName', props.ordersLogsBucket.bucketName)
   }
 }

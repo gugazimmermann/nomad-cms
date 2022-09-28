@@ -7,7 +7,7 @@ import { createResponse } from "./utils";
 import { StepFunctions } from "aws-sdk";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
-const SF_ARN = process.env.paymentStepArn || "";
+const SF_ARN = process.env.ordersPaymentStepArn || "";
 
 const db = new AWS.DynamoDB.DocumentClient();
 

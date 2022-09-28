@@ -1,4 +1,4 @@
-import { RemovalPolicy, CfnOutput } from "aws-cdk-lib";
+import { RemovalPolicy } from "aws-cdk-lib";
 import { Table, AttributeType, BillingMode, ProjectionType } from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 
@@ -24,10 +24,6 @@ export class DynamoDBConstruct extends Construct {
       partitionKey: { name: 'restaurantID', type: AttributeType.STRING },
       sortKey: { name: 'orderNumber', type: AttributeType.NUMBER },
       projectionType: ProjectionType.ALL,
-    });
-
-    new CfnOutput(scope, 'OrdersTableOutput', {
-      value: this.ordersTable.tableName,
     });
   }
 }

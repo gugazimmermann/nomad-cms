@@ -27,7 +27,7 @@ export const handler = async (
     const response = await db.query(params).promise();
     return createResponse(200, JSON.stringify(response.Items));
   } catch (error) {
-    console.error(`error`, JSON.stringify(event, undefined, 2));
+    console.error(`error`, JSON.stringify(error, undefined, 2));
     return createResponse(500, JSON.stringify(error));
   }
 };
