@@ -1,13 +1,16 @@
 import { LambdaIntegration, Resource } from "aws-cdk-lib/aws-apigateway";
 import { Table } from "aws-cdk-lib/aws-dynamodb";
-import { Runtime } from "aws-cdk-lib/aws-lambda";
+import { Runtime, StartingPosition } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunctionProps, NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import { join } from "path";
 import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { RetentionDays } from "aws-cdk-lib/aws-logs";
+import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 type LambdasConstructProps = {
   ordersTable: Table;
+  ordersConnTable: Table;
   ordersRestaurantIDResource: Resource;
   orderOrderIDResource: Resource;
   ordersLogsBucket: Bucket;
@@ -16,9 +19,13 @@ type LambdasConstructProps = {
 }
 
 export class LambdasConstruct extends Construct {
+  public readonly ordersWebsocketConnect: NodejsFunction
+  public readonly ordersWebsocketDisconnect: NodejsFunction
+  public readonly ordersWebsocketMsg: NodejsFunction
   public readonly ordersIncomming: NodejsFunction
   public readonly ordersPaymentState: NodejsFunction
   public readonly ordersProcess: NodejsFunction
+  public readonly ordersLambdaProps: NodejsFunctionProps
 
   constructor(scope: Construct, id: string, props: LambdasConstructProps) {
     super(scope, id);
@@ -31,11 +38,11 @@ export class LambdasConstruct extends Construct {
         externalModules: ["aws-sdk"],
       },
       depsLockFilePath: join(__dirname, "..", "lambdas", "package-lock.json"),
+      logRetention: RetentionDays.ONE_MONTH,
+      runtime: Runtime.NODEJS_14_X,
       environment: {
-        TABLE_NAME: props.ordersTable.tableName,
         NODE_OPTIONS: "--enable-source-maps",
       },
-      runtime: Runtime.NODEJS_14_X,
     };
 
     // orders get all
@@ -47,6 +54,7 @@ export class LambdasConstruct extends Construct {
         ...ordersLambdaProps,
       }
     );
+    ordersGetAll.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
     props.ordersTable.grantReadData(ordersGetAll);
     const ordersGetAllIntegration = new LambdaIntegration(ordersGetAll);
     props.ordersRestaurantIDResource.addMethod("GET", ordersGetAllIntegration);
@@ -60,6 +68,7 @@ export class LambdasConstruct extends Construct {
         ...ordersLambdaProps,
       }
     );
+    ordersGetOne.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
     props.ordersTable.grantReadData(ordersGetOne);
     const ordersGetOneIntegration = new LambdaIntegration(ordersGetOne);
     props.orderOrderIDResource.addMethod("GET", ordersGetOneIntegration);
@@ -73,6 +82,7 @@ export class LambdasConstruct extends Construct {
         ...ordersLambdaProps,
       }
     );
+    ordersUpdate.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
     props.ordersTable.grantWriteData(ordersUpdate);
     const ordersUpdateIntegration = new LambdaIntegration(ordersUpdate);
     props.ordersRestaurantIDResource.addMethod("PUT", ordersUpdateIntegration);
@@ -86,6 +96,7 @@ export class LambdasConstruct extends Construct {
         ...ordersLambdaProps,
       }
     );
+    ordersPatchStatus.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
     props.ordersTable.grantReadWriteData(ordersPatchStatus);
     const ordersUpdateStatusIntegration = new LambdaIntegration(
       ordersPatchStatus
@@ -104,6 +115,7 @@ export class LambdasConstruct extends Construct {
         ...ordersLambdaProps,
       }
     );
+    ordersDelete.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
     props.ordersTable.grantWriteData(ordersDelete);
     const ordersDeleteIntegration = new LambdaIntegration(ordersDelete);
     props.orderOrderIDResource.addMethod("DELETE", ordersDeleteIntegration);
@@ -120,6 +132,7 @@ export class LambdasConstruct extends Construct {
         ...ordersLambdaProps,
       }
     );
+    this.ordersIncomming.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
     props.ordersTable.grantReadData(this.ordersIncomming);
 
     /**
@@ -153,8 +166,48 @@ export class LambdasConstruct extends Construct {
         ...ordersLambdaProps,
       }
     );
+    this.ordersProcess.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
+    this.ordersProcess.addEnvironment('ordersLogsBucketName', props.ordersLogsBucket.bucketName)
     props.ordersTable.grantWriteData(this.ordersProcess);
     props.ordersLogsBucket.grantWrite(this.ordersProcess);
-    this.ordersProcess.addEnvironment('ordersLogsBucketName', props.ordersLogsBucket.bucketName)
+
+    // Websocket Connect
+    this.ordersWebsocketConnect = new NodejsFunction(
+      scope,
+      `${props.stackName}-ordersWebsocketConnect-${props.stage}`,
+      {
+        entry: join(__dirname, "..", "lambdas", "orders-websocket-connect.ts"),
+        ...ordersLambdaProps,
+      }
+    );
+    props.ordersConnTable.grantWriteData(this.ordersWebsocketConnect);
+    this.ordersWebsocketConnect.addEnvironment("TABLE_NAME", props.ordersConnTable.tableName);
+
+    // Websocket Disconnect
+    this.ordersWebsocketDisconnect = new NodejsFunction(
+      scope,
+      `${props.stackName}-ordersWebsocketDisconnect-${props.stage}`,
+      {
+        entry: join(__dirname, "..", "lambdas", "orders-websocket-disconnect.ts"),
+        ...ordersLambdaProps,
+      }
+    );
+    props.ordersConnTable.grantWriteData(this.ordersWebsocketDisconnect);
+    this.ordersWebsocketDisconnect.addEnvironment("TABLE_NAME", props.ordersConnTable.tableName);
+
+    // Websocket Message
+    this.ordersWebsocketMsg = new NodejsFunction(
+      scope,
+      `${props.stackName}-ordersWebsocketMsg-${props.stage}`,
+      {
+        entry: join(__dirname, "..", "lambdas", "orders-websocket-msg.ts"),
+        ...ordersLambdaProps,
+      }
+    );
+    props.ordersConnTable.grantReadData(this.ordersWebsocketMsg);
+    this.ordersWebsocketMsg.addEnvironment("TABLE_NAME", props.ordersConnTable.tableName);
+    this.ordersWebsocketMsg.addEventSource(new DynamoEventSource(props.ordersTable, {
+      startingPosition: StartingPosition.TRIM_HORIZON
+    }))
   }
 }

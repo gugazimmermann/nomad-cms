@@ -1,5 +1,5 @@
 import { RemovalPolicy } from "aws-cdk-lib";
-import { Table, AttributeType, BillingMode, ProjectionType } from "aws-cdk-lib/aws-dynamodb";
+import { Table, AttributeType, BillingMode, ProjectionType, StreamViewType } from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 
 type DynamoDBConstructProps = {
@@ -9,6 +9,7 @@ type DynamoDBConstructProps = {
 
 export class DynamoDBConstruct extends Construct {
   public readonly ordersTable: Table;
+  public readonly ordersConnTable: Table;
 
   constructor(scope: Construct, id: string, props: DynamoDBConstructProps) {
     super(scope, id);
@@ -16,6 +17,7 @@ export class DynamoDBConstruct extends Construct {
     this.ordersTable = new Table(scope, `${props.stackName}-ordersTable-${props.stage}`, {
       partitionKey: { name: 'restaurantID', type: AttributeType.STRING },
       sortKey: { name: 'orderID', type: AttributeType.STRING },
+      stream: StreamViewType.NEW_IMAGE,
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
     });
@@ -24,6 +26,13 @@ export class DynamoDBConstruct extends Construct {
       partitionKey: { name: 'restaurantID', type: AttributeType.STRING },
       sortKey: { name: 'orderNumber', type: AttributeType.NUMBER },
       projectionType: ProjectionType.ALL,
+    });
+
+    this.ordersConnTable = new Table(this, `${props.stackName}-ordersConnTable-${props.stage}`, {
+      partitionKey: { name: 'connectionId', type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "ttl"
     });
   }
 }

@@ -7,6 +7,7 @@ import { StepFunctionsConstruct } from "./stepFunctions";
 import { LambdasConstruct } from "./lambdas";
 import { CfnOutput } from "aws-cdk-lib";
 import { s3Construct } from './s3';
+import { WebsocketConstruct } from "./websocket";
 
 type OrdersConstructProps = {
   stackName: string | undefined;
@@ -18,7 +19,7 @@ export class OrdersConstruct extends Construct {
     super(scope, id);
 
     // orders DynamoDB
-    const { ordersTable } = new DynamoDBConstruct(
+    const { ordersTable, ordersConnTable } = new DynamoDBConstruct(
       this,
       "ordersDynamoDBConstruct",
       {
@@ -34,16 +35,17 @@ export class OrdersConstruct extends Construct {
         stage: props.stage,
       });
 
-    // orders logs bucket
+    // orders logs Bucket
     const { ordersLogsBucket } = new s3Construct(this, "ordersLogsBucket", {
       stackName: props.stackName,
       stage: props.stage,
     })
 
     // orders Lambdas
-    const { ordersIncomming, ordersPaymentState, ordersProcess } =
+    const { ordersWebsocketConnect, ordersWebsocketDisconnect, ordersWebsocketMsg, ordersIncomming, ordersPaymentState, ordersProcess } =
       new LambdasConstruct(this, "ordersLambdasConstruct", {
         ordersTable,
+        ordersConnTable,
         ordersRestaurantIDResource,
         orderOrderIDResource,
         ordersLogsBucket,
@@ -51,6 +53,15 @@ export class OrdersConstruct extends Construct {
         stage: props.stage,
       });
 
+    // orders  Websocket
+    const { ordersWebsocket } = new WebsocketConstruct(this, "ordersWebsocket", {
+      ordersWebsocketConnect,
+      ordersWebsocketDisconnect,
+      stackName: props.stackName,
+      stage: props.stage
+    });
+    ordersWebsocketMsg.addEnvironment("WEBSOCKET_ENDPOINT", ordersWebsocket.apiEndpoint);
+    ordersWebsocket.grantManageConnections(ordersWebsocketMsg)
     /**
      * orders incomming SQS
      *
@@ -90,5 +101,10 @@ export class OrdersConstruct extends Construct {
     new CfnOutput(scope, "ordersLogsBucketOutput", {
       value: ordersLogsBucket.bucketName,
     });
+    new CfnOutput(scope, "ordersWebsocketOutput", {
+      value: `${ordersWebsocket.apiEndpoint}/${props.stage}`,
+    });
+
+    ordersWebsocket
   }
 }
