@@ -28,6 +28,7 @@ export const handler = async (
     await db.delete(params).promise();
     return createResponse(204, JSON.stringify({}));
   } catch (error) {
+    console.error(`error`, JSON.stringify(event, undefined, 2));
     return createResponse(500, JSON.stringify(error));
   }
 };

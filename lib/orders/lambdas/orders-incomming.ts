@@ -4,8 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { ORDER_STATUS } from "./enums";
 import { ItemType } from "./types";
 import { createResponse } from "./utils";
+import { StepFunctions } from "aws-sdk";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
+const SF_ARN = process.env.paymentStepArn || "";
 
 const db = new AWS.DynamoDB.DocumentClient();
 
@@ -16,20 +18,20 @@ export const handler = async (
 
   const { Records } = event;
   if (!Records || !Records.length) return createResponse(400, "No records found");
-  let item: ItemType = JSON.parse(Records[0].body);
-  if (!item.restaurantID) return createResponse(400, "You are missing the restaurantID");
-  if (!item.menuID) return createResponse(400, "You are missing the menuID");
-  if (!item.orderItems || !item.orderItems.length) return createResponse(400, "You are missing the order items");
-  if (!item.total) return createResponse(400, "You are missing the order total");
-
-  const orderValue = item.orderItems.reduce((p, c) => p + (+c.value * c.quantity), 0);
-  if (+item.total !== orderValue) return createResponse(400, "Order total don't match");
+  let order: ItemType = JSON.parse(Records[0].body);
+  if (!order.restaurantID) return createResponse(400, "You are missing the restaurantID");
+  if (!order.menuID) return createResponse(400, "You are missing the menuID");
+  if (!order.orderItems || !order.orderItems.length) return createResponse(400, "You are missing the order items");
+  if (!order.total) return createResponse(400, "You are missing the order total");
+   
+  const orderValue = order.orderItems.reduce((p, c) => p + (+c.value * c.quantity), 0);
+  if (+order.total !== orderValue) return createResponse(400, "Order total don't match");
 
   const queryParams = {
     TableName: TABLE_NAME,
     IndexName: 'byOrderNumber',
     KeyConditionExpression: 'restaurantID = :restaurantID',
-    ExpressionAttributeValues: { ":restaurantID": item.restaurantID },
+    ExpressionAttributeValues: { ":restaurantID": order.restaurantID },
     ProjectionExpression: "#orderNumber",
     ExpressionAttributeNames: { "#orderNumber": "orderNumber" },
     ScanIndexForward: false,
@@ -42,30 +44,30 @@ export const handler = async (
     const queryResponse = await db.query(queryParams).promise();
     nextOrderNumber = (queryResponse?.Items && queryResponse?.Items[0] && queryResponse?.Items[0].orderNumber) || 0
   } catch (error) {
+    console.error(`error`, JSON.stringify(error, undefined, 2));
     return createResponse(500, JSON.stringify(error));
   }
 
   const dateNow = Date.now().toString();
 
-  item = {
-    ...item,
+  order = {
+    ...order,
     orderID: uuidv4(),
     orderNumber: nextOrderNumber + 1,
-    status: ORDER_STATUS.WAITING,
+    status: ORDER_STATUS.PENDING,
     createdAt: dateNow,
     updatedAt: dateNow,
   }
-
-  const params = {
-    TableName: TABLE_NAME,
-    Item: item
-  };
-  console.debug(`params`, JSON.stringify(params, undefined, 2));
-
+  console.debug(`order`, JSON.stringify(order, undefined, 2));
   try {
-    await db.put(params).promise();
-    return createResponse(201, JSON.stringify(item));
+    const sf = new StepFunctions();
+    const teste = await sf.startExecution({
+      stateMachineArn: SF_ARN,
+      input: JSON.stringify(order)
+    }).promise();
+    return createResponse(200, JSON.stringify(order));
   } catch (error) {
+    console.error(`error`, JSON.stringify(error, undefined, 2));
     return createResponse(500, JSON.stringify(error));
   }
 };

@@ -18,8 +18,6 @@ NomadCmsStack.RestaurantsMenuTableOutput = nomadcms-nomadcmsrestaurantMenuTableC
 - Seed the Restaurant Menu `aws dynamodb batch-write-item --request-items file://data/menu-items.json`
 
 
-`aws dynamodb batch-write-item --request-items file://data/orders-items.json`
-
 ```JSON
 {
   "restaurantID": "d471fe1e-521a-48cf-bb80-2a8ab79c2457",

@@ -64,8 +64,5 @@ export class RestaurantsMenuConstruct extends Construct {
     new CfnOutput(scope, 'RestaurantsMenuTableOutput', {
       value: restaurantMenuTable.tableName,
     });
-    new CfnOutput(scope, 'RestaurantsMenuApiOutput', {
-      value: restaurantMenuApi.restApiName,
-    });
   }
 }

@@ -1,4 +1,3 @@
-import { CfnOutput } from "aws-cdk-lib";
 import { RestApi, Cors, Resource } from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 
@@ -26,9 +25,5 @@ export class RestApiConstruct extends Construct {
     });
     this.ordersRestaurantIDResource = this.ordersApi.root.addResource(`{restaurantID}`);
     this.orderOrderIDResource = this.ordersRestaurantIDResource.addResource(`{orderID}`);
-
-    new CfnOutput(scope, 'OrdersApiOutput', {
-      value: this.ordersApi.restApiName,
-    });
   }
 }

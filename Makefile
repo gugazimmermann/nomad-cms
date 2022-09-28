@@ -11,15 +11,12 @@ clean:
 	rm -rf node_modules
 
 diff:
-	$(MAKE) build
 	cdk diff
 
 synth:
-	$(MAKE) build
 	cdk synth
 
 deploy:
-	$(MAKE) build
 	cdk deploy
 
 destroy:

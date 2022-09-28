@@ -1,100 +1,78 @@
-import { LambdaIntegration } from "aws-cdk-lib/aws-apigateway";
-import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
-import { NodejsFunctionProps, NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
-import { join } from "path";
-import { DynamoDBConstruct } from './dynamoDB';
-import { RestApiConstruct } from "./RestApi";
-import { SQSConstruct } from "./SQS";
+import { DynamoDBConstruct } from "./dynamoDB";
+import { RestApiConstruct } from "./restApi";
+import { SQSConstruct } from "./sqs";
+import { StepFunctionsConstruct } from "./stepFunctions";
+import { LambdasConstruct } from "./lambdas";
 
 type OrdersConstructProps = {
   stackName: string | undefined;
   stage: string;
-}
+};
 
 export class OrdersConstruct extends Construct {
   constructor(scope: Construct, id: string, props: OrdersConstructProps) {
     super(scope, id);
 
     // orders DynamoDB
-    const { ordersTable } = new DynamoDBConstruct(this, 'ordersDynamoDBConstruct', { stackName: props.stackName, stage: props.stage });
+    const { ordersTable } = new DynamoDBConstruct(
+      this,
+      "ordersDynamoDBConstruct",
+      {
+        stackName: props.stackName,
+        stage: props.stage,
+      }
+    );
 
     // orders RestApi
-    const { ordersApi, ordersRestaurantIDResource, orderOrderIDResource } = new RestApiConstruct(this, 'ordersRestApiConstruct', { stackName: props.stackName, stage: props.stage });
+    const { ordersApi, ordersRestaurantIDResource, orderOrderIDResource } =
+      new RestApiConstruct(this, "ordersRestApiConstruct", {
+        stackName: props.stackName,
+        stage: props.stage,
+      });
 
-    // common Lambda props
-    const ordersLambdaProps: NodejsFunctionProps = {
-      bundling: {
-        minify: true,
-        sourceMap: true,
-        externalModules: ['aws-sdk'],
-      },
-      depsLockFilePath: join(__dirname, '..', 'lambdas', 'package-lock.json'),
-      environment: {
-        TABLE_NAME: ordersTable.tableName,
-        NODE_OPTIONS: '--enable-source-maps',
-      },
-      runtime: Runtime.NODEJS_14_X,
-    }
-
-    // orders GET ALL
-    const ordersGetAll = new NodejsFunction(scope, `${props.stackName}-ordersGetAll-${props.stage}`, {
-      entry: join(__dirname, '..', 'lambdas', 'orders-get-all.ts'),
-      ...ordersLambdaProps,
-    });
-    ordersTable.grantReadData(ordersGetAll);
-    const ordersGetAllIntegration = new LambdaIntegration(ordersGetAll);
-    ordersRestaurantIDResource.addMethod('GET', ordersGetAllIntegration);
-
-    // orders GET ONE
-    const ordersGetOne = new NodejsFunction(scope, `${props.stackName}-ordersGetOne-${props.stage}`, {
-      entry: join(__dirname, '..', 'lambdas', 'orders-get-one.ts'),
-      ...ordersLambdaProps,
-    });
-    ordersTable.grantReadData(ordersGetOne);
-    const ordersGetOneIntegration = new LambdaIntegration(ordersGetOne);
-    orderOrderIDResource.addMethod('GET', ordersGetOneIntegration);
-
-    // orders CREATE
-    const ordersCreate = new NodejsFunction(scope, `${props.stackName}-ordersCreate-${props.stage}`, {
-      entry: join(__dirname, '..', 'lambdas', 'orders-create.ts'),
-      ...ordersLambdaProps,
-    });
-    ordersTable.grantReadWriteData(ordersCreate);
+    // orders Lambdas
+    const { ordersIncomming, ordersPaymentState, ordersProcess } =
+      new LambdasConstruct(this, "ordersLambdasConstruct", {
+        ordersTable,
+        ordersRestaurantIDResource,
+        orderOrderIDResource,
+        stackName: props.stackName,
+        stage: props.stage,
+      });
 
     /**
-     * orders CREATE SQS
+     * orders incomming SQS
+     *
+     * Incomming of orders will be handled in a Queue
      */
-    const { ordersPostQueue } = new SQSConstruct(this, 'ordersSQSConstruct', { ordersApi, stackName: props.stackName, stage: props.stage });
-    ordersCreate.addEventSource(new SqsEventSource(ordersPostQueue));
+    const { ordersIncommingQueue } = new SQSConstruct(
+      this,
+      "ordersIncommingSQSConstruct",
+      { ordersApi, stackName: props.stackName, stage: props.stage }
+    );
+    ordersIncomming.addEventSource(new SqsEventSource(ordersIncommingQueue));
 
-
-    // orders UPDATE
-    const ordersUpdate = new NodejsFunction(scope, `${props.stackName}-ordersUpdate-${props.stage}`, {
-      entry: join(__dirname, '..', 'lambdas', 'orders-update.ts'),
-      ...ordersLambdaProps,
-    });
-    ordersTable.grantWriteData(ordersUpdate);
-    const ordersUpdateIntegration = new LambdaIntegration(ordersUpdate);
-    ordersRestaurantIDResource.addMethod('PUT', ordersUpdateIntegration);
-
-    // orders PATCH STATUS
-    const ordersPatchStatus = new NodejsFunction(scope, `${props.stackName}-ordersPatchStatus-${props.stage}`, {
-      entry: join(__dirname, '..', 'lambdas', 'orders-patch-status.ts'),
-      ...ordersLambdaProps,
-    });
-    ordersTable.grantReadWriteData(ordersPatchStatus);
-    const ordersUpdateStatusIntegration = new LambdaIntegration(ordersPatchStatus);
-    ordersRestaurantIDResource.addMethod('PATCH', ordersUpdateStatusIntegration);
-
-    // orders DELETE
-    const ordersDelete = new NodejsFunction(scope, `${props.stackName}-ordersDelete-${props.stage}`, {
-      entry: join(__dirname, '..', 'lambdas', 'orders-delete.ts'),
-      ...ordersLambdaProps,
-    });
-    ordersTable.grantWriteData(ordersDelete);
-    const ordersDeleteIntegration = new LambdaIntegration(ordersDelete);
-    orderOrderIDResource.addMethod('DELETE', ordersDeleteIntegration);
+    /**
+     * To simulate the bank call to payment, we will use Step Functions
+     * 
+     * Simulate the bank respose in a simple way
+     * 60% Sucess
+     * 20% Failure (will retry)
+     * 20% Declined (will not be accpeted)
+    */
+    const { paymentStep } = new StepFunctionsConstruct(
+      this,
+      "ordersPaymentProcessStepFunctionsConstruct",
+      {
+        ordersPaymentState,
+        ordersProcess,
+        stackName: props.stackName,
+        stage: props.stage,
+      }
+    );
+    paymentStep.grantStartExecution(ordersIncomming);
+    ordersIncomming.addEnvironment("paymentStepArn", paymentStep.stateMachineArn);
   }
 }

@@ -70,6 +70,7 @@ export const handler = async (
     const response = await db.update(params).promise();
     return createResponse(200, JSON.stringify(response));
   } catch (error) {
+    console.error(`error`, JSON.stringify(event, undefined, 2));
     return createResponse(500, JSON.stringify(error));
   }
 };
