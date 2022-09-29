@@ -17,6 +17,7 @@ NomadCmsStack.RestaurantsMenuTableOutput = nomadcms-nomadcmsrestaurantMenuTableC
 - Update `data/menu-items.json` with the table name.
 - Seed the Restaurant Menu `aws dynamodb batch-write-item --request-items file://data/menu-items.json`
 
+Model of order Payload
 
 ```JSON
 {
