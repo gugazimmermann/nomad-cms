@@ -1,5 +1,7 @@
 # KIOSK PROJECT - AWS Cloud Backend
 
+![cloud](./kiosk-backend-cloud.png)
+
 ## Tech used
 
 AWS CDK / TypeScript
