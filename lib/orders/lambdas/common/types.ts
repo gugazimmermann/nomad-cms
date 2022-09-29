@@ -7,7 +7,7 @@ export type OrderItems = {
   value: number;
 }
 
-export type ItemType = {
+export type OrderType = {
   restaurantID: string;
   menuID: string;
   orderItems: OrderItems[];

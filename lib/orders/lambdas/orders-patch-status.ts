@@ -1,6 +1,6 @@
 import * as AWS from "aws-sdk";
 import { APIGatewayProxyResult, APIGatewayEvent } from "aws-lambda";
-import { ItemType } from "./common/types";
+import { OrderType } from "./common/types";
 import { ORDER_STATUS } from "./common/enums";
 import commonResponse from "./common/commonResponse";
 
@@ -20,7 +20,7 @@ export const handler = async (
   const { body } = event;
   if (!body) return commonResponse(400, "You are missing the Order Item");
 
-  let item: ItemType = JSON.parse(body);
+  let item: OrderType = JSON.parse(body);
   if (!item.restaurantID || item.restaurantID !== restaurantID)
     return commonResponse(400, "Incorrect restaurantID");
   if (!item.menuID) return commonResponse(400, "You are missing the menuID");

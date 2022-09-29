@@ -1,13 +1,13 @@
 import AWS = require("aws-sdk");
 import { ORDER_STATUS } from "./common/enums";
-import { ItemType } from "./common/types";
+import { OrderType } from "./common/types";
 import commonResponse from "./common/commonResponse";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
 const BUCKET_NAME = process.env.ordersLogsBucketName || "";
 const db = new AWS.DynamoDB.DocumentClient();
 
-const writeLog = async (order: ItemType): Promise<void> => {
+const writeLog = async (order: OrderType): Promise<void> => {
   const datepath = new Date().toISOString().split("T")[0].split("-");
   const keyName = `logs/${datepath[0]}/${datepath[1]}/${datepath[2]}/${order.orderID}.json`;
   try {
@@ -23,7 +23,7 @@ const writeLog = async (order: ItemType): Promise<void> => {
   }
 };
 
-export const handler = async (event: ItemType) => {
+export const handler = async (event: OrderType) => {
   console.debug(`event`, JSON.stringify(event, undefined, 2));
 
   const order = event;

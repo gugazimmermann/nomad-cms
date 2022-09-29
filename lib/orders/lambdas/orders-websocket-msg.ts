@@ -2,7 +2,7 @@ import * as AWS from "aws-sdk";
 import { APIGatewayProxyResult, DynamoDBStreamEvent } from "aws-lambda";
 import { Converter } from "aws-sdk/clients/dynamodb";
 import { URL } from "url";
-import { ItemType } from "./common/types";
+import { OrderType } from "./common/types";
 import commonResponse from "./common/commonResponse";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
@@ -25,7 +25,7 @@ export const handler = async (
   const orders = event.Records.map((r) => {
     if (r.dynamodb?.NewImage) return Converter.unmarshall(r.dynamodb.NewImage);
     else return null;
-  }).filter((x) => x) as ItemType[];
+  }).filter((x) => x) as OrderType[];
   console.debug(`orders`, JSON.stringify(orders, undefined, 2));
 
   const connectionData = await db
