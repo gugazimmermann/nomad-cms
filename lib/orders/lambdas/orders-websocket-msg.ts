@@ -1,15 +1,16 @@
 import * as AWS from "aws-sdk";
-import { DynamoDBStreamEvent } from "aws-lambda";
+import { APIGatewayProxyResult, DynamoDBStreamEvent } from "aws-lambda";
 import { createResponse } from "./utils";
 import { ItemType } from "./types";
 import { Converter } from "aws-sdk/clients/dynamodb";
+import { URL } from 'url';
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
 const WEBSOCKET_ENDPOINT = process.env.WEBSOCKET_ENDPOINT || "";
 
 const db = new AWS.DynamoDB.DocumentClient();
 
-export const handler = async (event: DynamoDBStreamEvent) => {
+export const handler = async (event: DynamoDBStreamEvent): Promise<APIGatewayProxyResult>  => {
   console.debug(`event`, JSON.stringify(event, undefined, 2));
 
   const { Records } = event;
@@ -41,16 +42,11 @@ export const handler = async (event: DynamoDBStreamEvent) => {
           }),
         })
         .promise();
-    } catch (error: any) {
+    } catch (error) {
       console.error(`error`, JSON.stringify(error, undefined, 2));
-      if (error.statusCode === 410) {
-        console.log(`Found stale connection, deleting ${connectionId}`);
-        await db.delete({ TableName: TABLE_NAME, Key: { connectionId } }).promise();
-      } else {
-        throw error;
-      }
     }
   });
 
   await Promise.all(postCalls);
+  return createResponse(200, JSON.stringify({ message: 'Streaming.'}));
 };
