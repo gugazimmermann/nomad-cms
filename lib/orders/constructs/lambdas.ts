@@ -74,7 +74,7 @@ export class LambdasConstruct extends Construct {
     ordersUpdate.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
     props.ordersTable.grantWriteData(ordersUpdate);
     const ordersUpdateIntegration = new LambdaIntegration(ordersUpdate);
-    props.ordersRestaurantIDResource.addMethod("PUT", ordersUpdateIntegration);
+    props.orderOrderIDResource.addMethod("PUT", ordersUpdateIntegration);
 
     // updates the status field of an order
     const ordersPatchStatus = new NodejsFunction(
@@ -90,7 +90,7 @@ export class LambdasConstruct extends Construct {
     const ordersUpdateStatusIntegration = new LambdaIntegration(
       ordersPatchStatus
     );
-    props.ordersRestaurantIDResource.addMethod(
+    props.orderOrderIDResource.addMethod(
       "PATCH",
       ordersUpdateStatusIntegration
     );
