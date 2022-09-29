@@ -1,12 +1,15 @@
 import { LambdaIntegration, Resource } from "aws-cdk-lib/aws-apigateway";
 import { Table } from "aws-cdk-lib/aws-dynamodb";
-import { Runtime, StartingPosition } from 'aws-cdk-lib/aws-lambda';
-import { NodejsFunctionProps, NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { StartingPosition } from "aws-cdk-lib/aws-lambda";
+import {
+  NodejsFunctionProps,
+  NodejsFunction,
+} from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import { join } from "path";
-import { Bucket } from 'aws-cdk-lib/aws-s3';
-import { RetentionDays } from "aws-cdk-lib/aws-logs";
+import { Bucket } from "aws-cdk-lib/aws-s3";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
+import commonLambdaProps from "./common/commonLambdaProps";
 
 type LambdasConstructProps = {
   ordersTable: Table;
@@ -16,42 +19,27 @@ type LambdasConstructProps = {
   ordersLogsBucket: Bucket;
   stackName: string | undefined;
   stage: string;
-}
+};
 
 export class LambdasConstruct extends Construct {
-  public readonly ordersWebsocketConnect: NodejsFunction
-  public readonly ordersWebsocketDisconnect: NodejsFunction
-  public readonly ordersWebsocketMsg: NodejsFunction
-  public readonly ordersIncomming: NodejsFunction
-  public readonly ordersPaymentState: NodejsFunction
-  public readonly ordersProcess: NodejsFunction
-  public readonly ordersLambdaProps: NodejsFunctionProps
+  public readonly ordersWebsocketConnect: NodejsFunction;
+  public readonly ordersWebsocketDisconnect: NodejsFunction;
+  public readonly ordersWebsocketMsg: NodejsFunction;
+  public readonly ordersIncomming: NodejsFunction;
+  public readonly ordersPaymentState: NodejsFunction;
+  public readonly ordersProcess: NodejsFunction;
+  public readonly ordersLambdaProps: NodejsFunctionProps;
 
   constructor(scope: Construct, id: string, props: LambdasConstructProps) {
     super(scope, id);
 
-    // common Lambda props
-    const ordersLambdaProps: NodejsFunctionProps = {
-      bundling: {
-        minify: true,
-        sourceMap: true,
-        externalModules: ["aws-sdk"],
-      },
-      depsLockFilePath: join(__dirname, "..", "lambdas", "package-lock.json"),
-      logRetention: RetentionDays.ONE_MONTH,
-      runtime: Runtime.NODEJS_14_X,
-      environment: {
-        NODE_OPTIONS: "--enable-source-maps",
-      },
-    };
-
-    // orders get all
+    // get all orders from a restaurant
     const ordersGetAll = new NodejsFunction(
       scope,
       `${props.stackName}-ordersGetAll-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-get-all.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
     ordersGetAll.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
@@ -59,13 +47,13 @@ export class LambdasConstruct extends Construct {
     const ordersGetAllIntegration = new LambdaIntegration(ordersGetAll);
     props.ordersRestaurantIDResource.addMethod("GET", ordersGetAllIntegration);
 
-    // orders get one
+    // get one order from a restaurant
     const ordersGetOne = new NodejsFunction(
       scope,
       `${props.stackName}-ordersGetOne-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-get-one.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
     ordersGetOne.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
@@ -73,13 +61,13 @@ export class LambdasConstruct extends Construct {
     const ordersGetOneIntegration = new LambdaIntegration(ordersGetOne);
     props.orderOrderIDResource.addMethod("GET", ordersGetOneIntegration);
 
-    // orders update
+    // update a single order
     const ordersUpdate = new NodejsFunction(
       scope,
       `${props.stackName}-ordersUpdate-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-update.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
     ordersUpdate.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
@@ -87,13 +75,13 @@ export class LambdasConstruct extends Construct {
     const ordersUpdateIntegration = new LambdaIntegration(ordersUpdate);
     props.ordersRestaurantIDResource.addMethod("PUT", ordersUpdateIntegration);
 
-    // orders patch status
+    // updates the status field of an order
     const ordersPatchStatus = new NodejsFunction(
       scope,
       `${props.stackName}-ordersPatchStatus-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-patch-status.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
     ordersPatchStatus.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
@@ -106,13 +94,13 @@ export class LambdasConstruct extends Construct {
       ordersUpdateStatusIntegration
     );
 
-    // orders delete
+    // delete an order
     const ordersDelete = new NodejsFunction(
       scope,
       `${props.stackName}-ordersDelete-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-delete.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
     ordersDelete.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
@@ -121,22 +109,25 @@ export class LambdasConstruct extends Construct {
     props.orderOrderIDResource.addMethod("DELETE", ordersDeleteIntegration);
 
     /**
-     * All incomming order will be from a SQS Queue
-     * and then pass to Step Function to handle the Payment
+     * all new order entries will be sent to an SQS Queue with DeadLetter,
+     * and then will be sent to a StepFunction which will simulate payment.
      */
     this.ordersIncomming = new NodejsFunction(
       scope,
       `${props.stackName}-ordersIncomming-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-incomming.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
-    this.ordersIncomming.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
+    this.ordersIncomming.addEnvironment(
+      "TABLE_NAME",
+      props.ordersTable.tableName
+    );
     props.ordersTable.grantReadData(this.ordersIncomming);
 
     /**
-     * orders payment process - handled by the Step Function
+     * orders payment process - handled by StepFunction
      * Just to simulate the bank response
      * 60% Sucess
      * 20% Failure (will retry)
@@ -147,67 +138,89 @@ export class LambdasConstruct extends Construct {
       `${props.stackName}-ordersPayment-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-payment.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
 
     /**
-     * After the payment response will send to the database
-     * as waiting if the payment is ok, or as payment_declined
-     * 
-     * it's will also save the order in a S3 bucket to be used
-     * as log in the future, with glue, athena and quicksight.
+     * orders that have been accepted or declined for payment will be stored
+     * in the database, and sent by transmission to the kitchen.
+     *
+     * They will also be stored in an S3 Bucket for logs (can be used with
+     * Glue, Athena and QuickSight);
      */
     this.ordersProcess = new NodejsFunction(
       scope,
       `${props.stackName}-ordersProcess-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-process.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
-    this.ordersProcess.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
-    this.ordersProcess.addEnvironment('ordersLogsBucketName', props.ordersLogsBucket.bucketName)
+    this.ordersProcess.addEnvironment(
+      "TABLE_NAME",
+      props.ordersTable.tableName
+    );
+    this.ordersProcess.addEnvironment(
+      "ordersLogsBucketName",
+      props.ordersLogsBucket.bucketName
+    );
     props.ordersTable.grantWriteData(this.ordersProcess);
     props.ordersLogsBucket.grantWrite(this.ordersProcess);
 
-    // Websocket Connect
+    // connection to websocket
     this.ordersWebsocketConnect = new NodejsFunction(
       scope,
       `${props.stackName}-ordersWebsocketConnect-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-websocket-connect.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
     props.ordersConnTable.grantWriteData(this.ordersWebsocketConnect);
-    this.ordersWebsocketConnect.addEnvironment("TABLE_NAME", props.ordersConnTable.tableName);
+    this.ordersWebsocketConnect.addEnvironment(
+      "TABLE_NAME",
+      props.ordersConnTable.tableName
+    );
 
-    // Websocket Disconnect
+    // remove connection to websocket
     this.ordersWebsocketDisconnect = new NodejsFunction(
       scope,
       `${props.stackName}-ordersWebsocketDisconnect-${props.stage}`,
       {
-        entry: join(__dirname, "..", "lambdas", "orders-websocket-disconnect.ts"),
-        ...ordersLambdaProps,
+        entry: join(
+          __dirname,
+          "..",
+          "lambdas",
+          "orders-websocket-disconnect.ts"
+        ),
+        ...commonLambdaProps,
       }
     );
     props.ordersConnTable.grantWriteData(this.ordersWebsocketDisconnect);
-    this.ordersWebsocketDisconnect.addEnvironment("TABLE_NAME", props.ordersConnTable.tableName);
+    this.ordersWebsocketDisconnect.addEnvironment(
+      "TABLE_NAME",
+      props.ordersConnTable.tableName
+    );
 
-    // Websocket Message
+    // sending message via websocket
     this.ordersWebsocketMsg = new NodejsFunction(
       scope,
       `${props.stackName}-ordersWebsocketMsg-${props.stage}`,
       {
         entry: join(__dirname, "..", "lambdas", "orders-websocket-msg.ts"),
-        ...ordersLambdaProps,
+        ...commonLambdaProps,
       }
     );
     props.ordersConnTable.grantReadData(this.ordersWebsocketMsg);
-    this.ordersWebsocketMsg.addEnvironment("TABLE_NAME", props.ordersConnTable.tableName);
-    this.ordersWebsocketMsg.addEventSource(new DynamoEventSource(props.ordersTable, {
-      startingPosition: StartingPosition.TRIM_HORIZON
-    }))
+    this.ordersWebsocketMsg.addEnvironment(
+      "TABLE_NAME",
+      props.ordersConnTable.tableName
+    );
+    this.ordersWebsocketMsg.addEventSource(
+      new DynamoEventSource(props.ordersTable, {
+        startingPosition: StartingPosition.TRIM_HORIZON,
+      })
+    );
   }
 }

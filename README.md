@@ -1,21 +1,30 @@
-# NOMAD CMS PROJECT
+# KIOSK PROJECT - AWS Cloud Backend
 
-## First install
+## Tech used
+
+AWS CDK / TypeScript
+
+### Services Used
+
+DynamoDB / DynamoDB Stream / API Gateway / API Gategay WebSocket / Lambdas / SQS / Step Functions
+
+## Install instructions - Linux
 
 - Install AWS CLI <https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html>
-- Install AWS CDK CLI (Linux) `npm install -g aws-cdk`
+- Install AWS CDK CLI `npm install -g aws-cdk`
 - Create the `./.env` file from `./.env.sample`
-- `cdk bootstrap`
-- Build the project `make build`
+- run `cdk bootstrap`
+- Compile the typescript `make build`
+- See have any error and the output of what will be build in the cloud `make build`
 - Deploy to env `make deploy`
 - See the table name in the CDK CloudFormation Output:
 
 ```bash
-NomadCmsStack.RestaurantsMenuTableOutput = nomadcms-nomadcmsrestaurantMenuTableC16A7176-1U0ESG9QMO01B
+NomadCmsStack.MenuTableOutput = XXXX
 ```
 
 - Update `data/menu-items.json` with the table name.
-- Seed the Restaurant Menu `aws dynamodb batch-write-item --request-items file://data/menu-items.json`
+- Seed the Restaurant Menu: run `aws dynamodb batch-write-item --request-items file://data/menu-items.json`
 
 Model of order Payload
 
@@ -46,3 +55,25 @@ Model of order Payload
   "total": "29.38"
 }
 ```
+
+The response from the command needs to be
+
+```BASH
+{
+    "UnprocessedItems": {}
+}
+```
+
+Teste the websocket: (install `npm install -g wscat`).
+
+Copy the output of `NomadCmsStack.ordersWebsocketOutput`
+
+run `wscat -c PASTE_OUTPUT_HERE`
+
+The response needs to be
+
+```bash
+Connected (press CTRL+C to quit)
+```
+
+Any insert in the orders table will appears here.

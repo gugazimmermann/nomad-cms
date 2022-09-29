@@ -4,7 +4,7 @@ import { Construct } from "constructs";
 type RestApiConstructProps = {
   stackName: string | undefined;
   stage: string;
-}
+};
 
 export class RestApiConstruct extends Construct {
   public readonly ordersApi: RestApi;
@@ -14,16 +14,23 @@ export class RestApiConstruct extends Construct {
   constructor(scope: Construct, id: string, props: RestApiConstructProps) {
     super(scope, id);
 
-    this.ordersApi = new RestApi(scope, `${props.stackName}-ordersApi-${props.stage}`, {
-      deployOptions: {
-        stageName: props.stage,
-        tracingEnabled: true,
-      },
-      defaultCorsPreflightOptions: {
-        allowOrigins: Cors.ALL_ORIGINS
+    // orders restAPI
+    this.ordersApi = new RestApi(
+      scope,
+      `${props.stackName}-ordersApi-${props.stage}`,
+      {
+        deployOptions: {
+          stageName: props.stage,
+          tracingEnabled: true,
+        },
+        defaultCorsPreflightOptions: {
+          allowOrigins: Cors.ALL_ORIGINS,
+        },
       }
-    });
-    this.ordersRestaurantIDResource = this.ordersApi.root.addResource(`{restaurantID}`);
-    this.orderOrderIDResource = this.ordersRestaurantIDResource.addResource(`{orderID}`);
+    );
+    this.ordersRestaurantIDResource =
+      this.ordersApi.root.addResource(`{restaurantID}`);
+    this.orderOrderIDResource =
+      this.ordersRestaurantIDResource.addResource(`{orderID}`);
   }
 }

@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { RestaurantsMenuConstruct } from './restaurants-menu/constructs';
+import { MenuConstruct } from './menu/constructs';
 import { OrdersConstruct } from './orders/constructs';
 
 export interface NomadCmsStackProps extends cdk.StackProps {
@@ -18,14 +18,14 @@ export class NomadCmsStack extends cdk.Stack {
      * 
      * Different Construct because we want to simulate a different backend
      */
-    new RestaurantsMenuConstruct(this, `${props.stackName}-restaurantsMenu`, { stackName, stage });
+    new MenuConstruct(this, `${props.stackName}-menu-${props.stage}`, { stackName, stage });
 
     /**
      * Orders API
      * 
      * Different Construct because we want to simulate a different backend
      */
-     new OrdersConstruct(this, `${props.stackName}-orders`, { stackName, stage });
+     new OrdersConstruct(this, `${props.stackName}-orders-${props.stage}`, { stackName, stage });
   }
 }
 

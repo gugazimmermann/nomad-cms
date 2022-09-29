@@ -6,7 +6,7 @@ import { SQSConstruct } from "./sqs";
 import { StepFunctionsConstruct } from "./stepFunctions";
 import { LambdasConstruct } from "./lambdas";
 import { CfnOutput } from "aws-cdk-lib";
-import { s3Construct } from './s3';
+import { s3Construct } from "./s3";
 import { WebsocketConstruct } from "./websocket";
 
 type OrdersConstructProps = {
@@ -39,34 +39,44 @@ export class OrdersConstruct extends Construct {
     const { ordersLogsBucket } = new s3Construct(this, "ordersLogsBucket", {
       stackName: props.stackName,
       stage: props.stage,
-    })
+    });
 
-    // orders Lambdas
-    const { ordersWebsocketConnect, ordersWebsocketDisconnect, ordersWebsocketMsg, ordersIncomming, ordersPaymentState, ordersProcess } =
-      new LambdasConstruct(this, "ordersLambdasConstruct", {
-        ordersTable,
-        ordersConnTable,
-        ordersRestaurantIDResource,
-        orderOrderIDResource,
-        ordersLogsBucket,
-        stackName: props.stackName,
-        stage: props.stage,
-      });
-
-    // orders  Websocket
-    const { ordersWebsocket } = new WebsocketConstruct(this, "ordersWebsocket", {
+    // orders lambdas
+    const {
       ordersWebsocketConnect,
       ordersWebsocketDisconnect,
+      ordersWebsocketMsg,
+      ordersIncomming,
+      ordersPaymentState,
+      ordersProcess,
+    } = new LambdasConstruct(this, "ordersLambdasConstruct", {
+      ordersTable,
+      ordersConnTable,
+      ordersRestaurantIDResource,
+      orderOrderIDResource,
+      ordersLogsBucket,
       stackName: props.stackName,
-      stage: props.stage
+      stage: props.stage,
     });
-    ordersWebsocketMsg.addEnvironment("WEBSOCKET_ENDPOINT", ordersWebsocket.apiEndpoint);
-    ordersWebsocket.grantManageConnections(ordersWebsocketMsg)
-    /**
-     * orders incomming SQS
-     *
-     * Incomming of orders will be handled in a Queue
-     */
+
+    // orders websocket
+    const { ordersWebsocket } = new WebsocketConstruct(
+      this,
+      "ordersWebsocket",
+      {
+        ordersWebsocketConnect,
+        ordersWebsocketDisconnect,
+        stackName: props.stackName,
+        stage: props.stage,
+      }
+    );
+    ordersWebsocketMsg.addEnvironment(
+      "WEBSOCKET_ENDPOINT",
+      ordersWebsocket.apiEndpoint
+    );
+    ordersWebsocket.grantManageConnections(ordersWebsocketMsg);
+
+    // orders SQS
     const { ordersIncommingQueue } = new SQSConstruct(
       this,
       "ordersIncommingSQSConstruct",
@@ -74,14 +84,7 @@ export class OrdersConstruct extends Construct {
     );
     ordersIncomming.addEventSource(new SqsEventSource(ordersIncommingQueue));
 
-    /**
-     * To simulate the bank call to payment, we will use Step Functions
-     *
-     * Simulate the bank respose in a simple way
-     * 60% Sucess
-     * 20% Failure (will retry)
-     * 20% Declined (will not be accpeted)
-     */
+    // orders StepFunctions
     const { ordersPaymentStep } = new StepFunctionsConstruct(
       this,
       "ordersPaymentProcessStepFunctionsConstruct",
@@ -93,7 +96,10 @@ export class OrdersConstruct extends Construct {
       }
     );
     ordersPaymentStep.grantStartExecution(ordersIncomming);
-    ordersIncomming.addEnvironment("ordersPaymentStepArn", ordersPaymentStep.stateMachineArn);
+    ordersIncomming.addEnvironment(
+      "ordersPaymentStepArn",
+      ordersPaymentStep.stateMachineArn
+    );
 
     new CfnOutput(scope, "OrdersTableOutput", {
       value: ordersTable.tableName,
@@ -105,6 +111,6 @@ export class OrdersConstruct extends Construct {
       value: `${ordersWebsocket.apiEndpoint}/${props.stage}`,
     });
 
-    ordersWebsocket
+    ordersWebsocket;
   }
 }

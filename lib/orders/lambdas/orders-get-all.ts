@@ -1,6 +1,6 @@
 import * as AWS from "aws-sdk";
 import { APIGatewayProxyResult, APIGatewayEvent } from "aws-lambda";
-import { createResponse } from "./utils";
+import commonResponse from "./common/commonResponse";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
 
@@ -12,7 +12,7 @@ export const handler = async (
   console.debug(`event`, JSON.stringify(event, undefined, 2));
 
   const restaurantID = event.pathParameters?.restaurantID;
-  if (!restaurantID) return createResponse(400, "You are missing the restaurantID");
+  if (!restaurantID) return commonResponse(400, "You are missing the restaurantID");
 
   const params = {
     TableName: TABLE_NAME,
@@ -25,9 +25,9 @@ export const handler = async (
 
   try {
     const response = await db.query(params).promise();
-    return createResponse(200, JSON.stringify(response.Items));
+    return commonResponse(200, JSON.stringify(response.Items));
   } catch (error) {
     console.error(`error`, JSON.stringify(error, undefined, 2));
-    return createResponse(500, JSON.stringify(error));
+    return commonResponse(500, JSON.stringify(error));
   }
 };

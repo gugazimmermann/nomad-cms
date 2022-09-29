@@ -2,10 +2,8 @@
   "name": "restaurant-menu-get",
   "version": "1.0.0",
   "devDependencies": {
+    "aws-sdk": "*",
     "@types/aws-lambda": "^8.10.106",
     "@types/node": "*"
-  },
-  "dependencies": {
-    "aws-sdk": "*"
   }
 }

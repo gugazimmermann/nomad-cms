@@ -9,18 +9,19 @@ type SQSConstructProps = {
   ordersApi: RestApi;
 };
 
+const status = [
+  { statusCode: "200" },
+  { statusCode: "400" },
+  { statusCode: "500" },
+];
+
 export class SQSConstruct extends Construct {
   public readonly ordersIncommingQueue: Queue;
 
   constructor(scope: Construct, id: string, props: SQSConstructProps) {
     super(scope, id);
 
-    const status = [
-      { statusCode: "200" },
-      { statusCode: "400" },
-      { statusCode: "500" },
-    ];
-
+    //sqs to receive the orders
     const ordersIncommingDeadLetterQueue = new Queue(
       this,
       "ordersIncommingDeadLetterQueue"
@@ -31,10 +32,16 @@ export class SQSConstruct extends Construct {
         maxReceiveCount: 5,
       },
     });
-    const ordersIncommingQueueIntegrationRole = new Role(this, "ordersIncommingQueueIntegrationRole", {
-      assumedBy: new ServicePrincipal("apigateway.amazonaws.com"),
-    });
-    this.ordersIncommingQueue.grantSendMessages(ordersIncommingQueueIntegrationRole);
+    const ordersIncommingQueueIntegrationRole = new Role(
+      this,
+      "ordersIncommingQueueIntegrationRole",
+      {
+        assumedBy: new ServicePrincipal("apigateway.amazonaws.com"),
+      }
+    );
+    this.ordersIncommingQueue.grantSendMessages(
+      ordersIncommingQueueIntegrationRole
+    );
     const ordersIncommingIntegration = new AwsIntegration({
       service: "sqs",
       path: `${process.env.CDK_DEFAULT_ACCOUNT}/${this.ordersIncommingQueue.queueName}`,
