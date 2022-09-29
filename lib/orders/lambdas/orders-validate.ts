@@ -34,7 +34,7 @@ export const handler = async (event: APIGatewayEvent): Promise<APIGatewayProxyRe
     (p, c) => p + (+c.value * +c.quantity),
     0
   );
-  if (+order.total !== orderValue)
+  if (order.total !== orderValue.toFixed(2))
     return commonResponse(400, `Order total don't match: ${orderValue}`);
 
 

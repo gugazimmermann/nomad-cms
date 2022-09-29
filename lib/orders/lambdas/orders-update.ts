@@ -36,7 +36,7 @@ export const handler = async (
     (p, c) => p + +c.value * c.quantity,
     0
   );
-  if (+item.total !== orderValue)
+  if (item.total !== orderValue.toFixed(2))
     return commonResponse(400, "Order total don't match");
 
   const dateNow = Date.now().toString();
