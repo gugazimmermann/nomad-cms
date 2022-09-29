@@ -25,6 +25,7 @@ export class LambdasConstruct extends Construct {
   public readonly ordersWebsocketConnect: NodejsFunction;
   public readonly ordersWebsocketDisconnect: NodejsFunction;
   public readonly ordersWebsocketMsg: NodejsFunction;
+  public readonly orderValidate: NodejsFunction;
   public readonly ordersIncomming: NodejsFunction;
   public readonly ordersPaymentState: NodejsFunction;
   public readonly ordersProcess: NodejsFunction;
@@ -112,6 +113,14 @@ export class LambdasConstruct extends Construct {
      * all new order entries will be sent to an SQS Queue with DeadLetter,
      * and then will be sent to a StepFunction which will simulate payment.
      */
+    this.orderValidate = new NodejsFunction(scope, `${props.stackName}-orderValidate-${props.stage}`,
+      {
+        entry: join(__dirname, "..", "lambdas", "orders-validate.ts"),
+        ...commonLambdaProps,
+      })
+      const orderValidateIntegration = new LambdaIntegration(this.orderValidate);
+      props.ordersRestaurantIDResource.addMethod("POST", orderValidateIntegration);
+
     this.ordersIncomming = new NodejsFunction(
       scope,
       `${props.stackName}-ordersIncomming-${props.stage}`,

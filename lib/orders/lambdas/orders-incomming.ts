@@ -2,7 +2,7 @@ import * as AWS from "aws-sdk";
 import { APIGatewayProxyResult, SQSEvent } from "aws-lambda";
 import { v4 as uuidv4 } from "uuid";
 import { ORDER_STATUS } from "./common/enums";
-import { ItemType } from "./common/types";
+import { OrderType } from "./common/types";
 import commonResponse from "./common/commonResponse";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
@@ -18,21 +18,7 @@ export const handler = async (
   const { Records } = event;
   if (!Records || !Records.length)
     return commonResponse(400, "No records found");
-  let order: ItemType = JSON.parse(Records[0].body);
-  if (!order.restaurantID)
-    return commonResponse(400, "You are missing the restaurantID");
-  if (!order.menuID) return commonResponse(400, "You are missing the menuID");
-  if (!order.orderItems || !order.orderItems.length)
-    return commonResponse(400, "You are missing the order items");
-  if (!order.total)
-    return commonResponse(400, "You are missing the order total");
-
-  const orderValue = order.orderItems.reduce(
-    (p, c) => p + +c.value * c.quantity,
-    0
-  );
-  if (+order.total !== orderValue)
-    return commonResponse(400, "Order total don't match");
+  let order: OrderType = JSON.parse(Records[0].body);
 
   const queryParams = {
     TableName: TABLE_NAME,

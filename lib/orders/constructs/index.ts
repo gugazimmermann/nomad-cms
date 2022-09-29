@@ -46,6 +46,7 @@ export class OrdersConstruct extends Construct {
       ordersWebsocketConnect,
       ordersWebsocketDisconnect,
       ordersWebsocketMsg,
+      orderValidate,
       ordersIncomming,
       ordersPaymentState,
       ordersProcess,
@@ -82,6 +83,8 @@ export class OrdersConstruct extends Construct {
       "ordersIncommingSQSConstruct",
       { ordersApi, stackName: props.stackName, stage: props.stage }
     );
+    orderValidate.addEnvironment("QUEUEURL", ordersIncommingQueue.queueUrl);
+    ordersIncommingQueue.grantSendMessages(orderValidate);
     ordersIncomming.addEventSource(new SqsEventSource(ordersIncommingQueue));
 
     // orders StepFunctions
