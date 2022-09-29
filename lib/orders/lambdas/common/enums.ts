@@ -1,6 +1,6 @@
 export enum ORDER_STATUS {
   PENDING = 'pending',
-  PROCESSING = 'processing payment',
+  PROCESSING = 'processing_payment',
   PAYMENT_FAILURE = 'payment_failure',
   PAYMENT_DECLINED = 'payment_declined',
   PAYMENT_SUCCESS = 'payment_success',
