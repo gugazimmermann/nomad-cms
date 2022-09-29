@@ -118,8 +118,10 @@ export class LambdasConstruct extends Construct {
         entry: join(__dirname, "..", "lambdas", "orders-validate.ts"),
         ...commonLambdaProps,
       })
-      const orderValidateIntegration = new LambdaIntegration(this.orderValidate);
-      props.ordersRestaurantIDResource.addMethod("POST", orderValidateIntegration);
+    props.ordersTable.grantReadData(this.orderValidate);
+    this.orderValidate.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
+    const orderValidateIntegration = new LambdaIntegration(this.orderValidate);
+    props.ordersRestaurantIDResource.addMethod("POST", orderValidateIntegration);
 
     this.ordersIncomming = new NodejsFunction(
       scope,
@@ -128,10 +130,6 @@ export class LambdasConstruct extends Construct {
         entry: join(__dirname, "..", "lambdas", "orders-incomming.ts"),
         ...commonLambdaProps,
       }
-    );
-    this.ordersIncomming.addEnvironment(
-      "TABLE_NAME",
-      props.ordersTable.tableName
     );
     props.ordersTable.grantReadData(this.ordersIncomming);
 

@@ -3,7 +3,10 @@ import { APIGatewayEvent, APIGatewayProxyResult } from "aws-lambda";
 import { OrderType } from "./common/types";
 import commonResponse from "./common/commonResponse";
 
+const TABLE_NAME = process.env.TABLE_NAME || "";
 const QUEUEURL = process.env.QUEUEURL || "";
+
+const db = new AWS.DynamoDB.DocumentClient();
 
 export const handler = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
   console.debug(`event`, JSON.stringify(event, undefined, 2));
@@ -23,19 +26,46 @@ export const handler = async (event: APIGatewayEvent): Promise<APIGatewayProxyRe
   if (!order.total)
     return commonResponse(400, "You are missing the order total");
 
+  console.debug(`event`, JSON.stringify(order, undefined, 2));
+
   const orderValue = order.orderItems.reduce(
-    (p, c) => p + +c.value * c.quantity,
+    (p, c) => p + (+c.value * +c.quantity),
     0
   );
   if (+order.total !== orderValue)
-    return commonResponse(400, "Order total don't match");
+    return commonResponse(400, `Order total don't match: ${orderValue}`);
 
-  console.debug(`order`, JSON.stringify(order, undefined, 2));
+
+  const queryParams = {
+    TableName: TABLE_NAME,
+    IndexName: "byOrderNumber",
+    KeyConditionExpression: "restaurantID = :restaurantID",
+    ExpressionAttributeValues: { ":restaurantID": order.restaurantID },
+    ProjectionExpression: "#orderNumber",
+    ExpressionAttributeNames: { "#orderNumber": "orderNumber" },
+    ScanIndexForward: false,
+    Limit: 1,
+  };
+
+  let nextOrderNumber = 0;
+
+  try {
+    const queryResponse = await db.query(queryParams).promise();
+    nextOrderNumber =
+      (queryResponse?.Items &&
+        queryResponse?.Items[0] &&
+        queryResponse?.Items[0].orderNumber) ||
+      0;
+  } catch (error) {
+    console.error(`error`, JSON.stringify(error, undefined, 2));
+    return commonResponse(500, JSON.stringify(error));
+  }
+  order.orderNumber = nextOrderNumber + 1
   try {
     var params = {
-     MessageBody: JSON.stringify(order),
-     QueueUrl: QUEUEURL
-   };
+      MessageBody: JSON.stringify(order),
+      QueueUrl: QUEUEURL
+    };
     await new AWS.SQS().sendMessage(params).promise();
     return commonResponse(200, JSON.stringify(order));
   } catch (error) {
