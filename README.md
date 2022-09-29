@@ -79,3 +79,6 @@ Connected (press CTRL+C to quit)
 ```
 
 Any insert in the orders table will appears here.
+
+
+* run `make destroy` to destroy all the cloud resources
