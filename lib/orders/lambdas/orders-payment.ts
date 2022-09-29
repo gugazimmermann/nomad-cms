@@ -1,8 +1,10 @@
-import { ItemType } from "./common/types";
+import { OrderType } from "./common/types";
 import { ORDER_STATUS } from "./common/enums";
 
-export const handler = async (event: ItemType) => {
-  const order: ItemType = { ...event };
+export const handler = async (event: any) => {
+  let order = event as OrderType;
+  if (event?.statusCode) order = event.body
+
   const simulatePaymentStatus = [
     ORDER_STATUS.PAYMENT_SUCCESS,
     ORDER_STATUS.PAYMENT_SUCCESS,
