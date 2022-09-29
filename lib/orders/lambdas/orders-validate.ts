@@ -1,7 +1,9 @@
 import * as AWS from "aws-sdk";
 import { APIGatewayEvent, APIGatewayProxyResult } from "aws-lambda";
+import { v4 as uuidv4 } from "uuid";
 import { OrderType } from "./common/types";
 import commonResponse from "./common/commonResponse";
+import { ORDER_STATUS } from "./common/enums";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
 const QUEUEURL = process.env.QUEUEURL || "";
@@ -60,13 +62,37 @@ export const handler = async (event: APIGatewayEvent): Promise<APIGatewayProxyRe
     console.error(`error`, JSON.stringify(error, undefined, 2));
     return commonResponse(500, JSON.stringify(error));
   }
-  order.orderNumber = nextOrderNumber + 1
+
+  const dateNow = Date.now().toString();
+
+  order = {
+    ...order,
+    orderID: uuidv4(),
+    orderNumber: nextOrderNumber + 1,
+    status: ORDER_STATUS.PENDING,
+    createdAt: dateNow,
+    updatedAt: dateNow,
+  };
+
+  const params = {
+    TableName: TABLE_NAME,
+    Item: order,
+  };
+  console.debug(`params`, JSON.stringify(params, undefined, 2));
+
   try {
-    var params = {
+    await db.put(params).promise();
+  } catch (error) {
+    console.error(`error`, JSON.stringify(error, undefined, 2));
+    return commonResponse(500, JSON.stringify(error));
+  }
+
+  try {
+    var sqsParams = {
       MessageBody: JSON.stringify(order),
       QueueUrl: QUEUEURL
     };
-    await new AWS.SQS().sendMessage(params).promise();
+    await new AWS.SQS().sendMessage(sqsParams).promise();
     return commonResponse(200, JSON.stringify(order));
   } catch (error) {
     console.error(`error`, JSON.stringify(error, undefined, 2));

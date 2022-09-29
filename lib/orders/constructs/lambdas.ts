@@ -118,7 +118,7 @@ export class LambdasConstruct extends Construct {
         entry: join(__dirname, "..", "lambdas", "orders-validate.ts"),
         ...commonLambdaProps,
       })
-    props.ordersTable.grantReadData(this.orderValidate);
+    props.ordersTable.grantReadWriteData(this.orderValidate);
     this.orderValidate.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
     const orderValidateIntegration = new LambdaIntegration(this.orderValidate);
     props.ordersRestaurantIDResource.addMethod("POST", orderValidateIntegration);
@@ -131,7 +131,8 @@ export class LambdasConstruct extends Construct {
         ...commonLambdaProps,
       }
     );
-    props.ordersTable.grantReadData(this.ordersIncomming);
+    this.ordersIncomming.addEnvironment("TABLE_NAME", props.ordersTable.tableName);
+    props.ordersTable.grantWriteData(this.ordersIncomming);
 
     /**
      * orders payment process - handled by StepFunction

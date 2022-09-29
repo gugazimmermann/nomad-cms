@@ -1,11 +1,13 @@
 import * as AWS from "aws-sdk";
 import { APIGatewayProxyResult, SQSEvent } from "aws-lambda";
-import { v4 as uuidv4 } from "uuid";
 import { ORDER_STATUS } from "./common/enums";
 import { OrderType } from "./common/types";
 import commonResponse from "./common/commonResponse";
 
 const SF_ARN = process.env.ordersPaymentStepArn || "";
+const TABLE_NAME = process.env.TABLE_NAME || "";
+
+const db = new AWS.DynamoDB.DocumentClient();
 
 export const handler = async (
   event: SQSEvent
@@ -21,12 +23,37 @@ export const handler = async (
 
   order = {
     ...order,
-    orderID: uuidv4(),
-    status: ORDER_STATUS.PENDING,
-    createdAt: dateNow,
+    status: ORDER_STATUS.PROCESSING,
     updatedAt: dateNow,
   };
-  console.debug(`order`, JSON.stringify(order, undefined, 2));
+
+  const params = {
+    TableName: TABLE_NAME,
+    Key: {
+      restaurantID: order.restaurantID,
+      orderID: order.orderID,
+    },
+    UpdateExpression:
+      "set #status = :status, #updatedAt = :updatedAt",
+    ExpressionAttributeValues: {
+      ":status": order.status,
+      ":updatedAt": order.updatedAt,
+    },
+    ExpressionAttributeNames: {
+      "#status": "status",
+      "#updatedAt": "updatedAt",
+    },
+    ReturnValues: "ALL_NEW",
+  };
+  console.debug(`params`, JSON.stringify(params, undefined, 2));
+
+  try {
+    await db.update(params).promise();
+  } catch (error) {
+    console.error(`error`, JSON.stringify(error, undefined, 2));
+    return commonResponse(500, JSON.stringify(error));
+  }
+
   try {
     await new AWS.StepFunctions()
       .startExecution({

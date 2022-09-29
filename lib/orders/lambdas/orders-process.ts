@@ -30,15 +30,31 @@ export const handler = async (event: OrderType) => {
 
   if (order.status === ORDER_STATUS.PAYMENT_SUCCESS)
     order.status = ORDER_STATUS.WAITING;
+  const dateNow = Date.now().toString();
+  order.updatedAt = dateNow;
 
   const params = {
     TableName: TABLE_NAME,
-    Item: order,
+    Key: {
+      restaurantID: order.restaurantID,
+      orderID: order.orderID,
+    },
+    UpdateExpression:
+      "set #status = :status, #updatedAt = :updatedAt",
+    ExpressionAttributeValues: {
+      ":status": order.status,
+      ":updatedAt": order.updatedAt,
+    },
+    ExpressionAttributeNames: {
+      "#status": "status",
+      "#updatedAt": "updatedAt",
+    },
+    ReturnValues: "ALL_NEW",
   };
   console.debug(`params`, JSON.stringify(params, undefined, 2));
 
   try {
-    await db.put(params).promise();
+    await db.update(params).promise();
     await writeLog(order);
     return commonResponse(200, JSON.stringify(order));
   } catch (error) {
