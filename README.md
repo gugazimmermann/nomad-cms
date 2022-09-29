@@ -10,6 +10,12 @@ AWS CDK / TypeScript
 
 DynamoDB / DynamoDB Stream / API Gateway / API Gategay WebSocket / Lambdas / SQS / Step Functions
 
+### Frontend
+
+<https://github.com/gugazimmermann/nomad-cms-frontend>
+
+<https://d1ymv3dztfmiyb.cloudfront.net>
+
 ## Install instructions - Linux
 
 - Install AWS CLI <https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html>
